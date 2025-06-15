@@ -1,0 +1,21 @@
+#timeWrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#timeWrapper div {
+    font-size: clamp(2.5rem, 15vw, 12rem);
+    text-align: center;
+    color: white;
+}
+
+
+#hours::after,
+#minutes::after {
+    content: ':';
+}
+
+#seconds::after {
+    content: ';';
+}
