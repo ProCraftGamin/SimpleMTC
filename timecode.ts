@@ -3,6 +3,13 @@ const EventEmitter = require('events');
 const midi = require('midi');
 const os = require('os');
 
+interface OutputEntry {
+    port: number,
+    name: string,
+    type: string,
+    output: InstanceType<typeof midi.Output>;
+}
+
 export class Timecode extends EventEmitter {
     private startOffset: number[];
     private currentTime: number[];
@@ -10,7 +17,7 @@ export class Timecode extends EventEmitter {
     private fps: number;
     private rate: number = 30;
     private maxFrames: number = 30;
-    private outputs: InstanceType<typeof midi.Output>[] = [];
+    private outputs: OutputEntry[] = [];
     private interval?: NodeJS.Timeout;
 
     constructor(fps: number, startOffset?: number[], maxTime?: number[]) {
@@ -89,7 +96,7 @@ export class Timecode extends EventEmitter {
                 case 7: dataByte = (i << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
             }
 
-            this.outputs.forEach(out => out.send([0xF1, dataByte]));
+            this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
 
             if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
             this.emit('timecode', this.currentTime);
@@ -145,21 +152,24 @@ export class Timecode extends EventEmitter {
     }
 
     public getAvailableOutputs() {
-        return new Promise(async (resolve, reject) => {
         const dummyOutput = new midi.Output();
-        const availableOutputs: { [key: number]: string }[] = [];
-        const ports = await dummyOutput.getPortCount()
+        const availableOutputs: { port: number; name: string }[] = [];
+        const ports = dummyOutput.getPortCount();
         for (let i = 0; i < ports; i++) {
-            availableOutputs.push({ [i]: dummyOutput.getPortName(i) });
+          availableOutputs.push({ port: i, name: dummyOutput.getPortName(i) });
         }
         dummyOutput.closePort();
-
-        resolve(availableOutputs);
-        })
+        return availableOutputs;
     }
 
+
+    public getActiveOutputs(): { name: string; type: string; port: number }[] {
+        return this.outputs.map(({ name, type, port }) => ({ name, type, port }));
+    }
+
+
     public addPhysicalOutput(name?: string, port?: number) {
-        if (!name && (port == undefined || port == null)) throw new Error("No name or port specified");
+        if (!name && (port === undefined || port == null)) throw new Error("No name or port specified");
         
         const output = new midi.Output();
 
@@ -175,33 +185,44 @@ export class Timecode extends EventEmitter {
             }
             else throw new Error(`Name doesn't match port ${port}: Expected ${portName}, Recieved ${name}`);
         }
-        else if ((port == undefined || port == null) && name) {
+        else if ((port === undefined || port == null) && name) {
             const ports = output.getPortCount()
             for (let i = 0; i < ports; i++) {
                 if (output.getPortName(i).trim().toLowerCase() === name.trim().toLowerCase()) {
                     output.openPort(i);
                     console.log(`Opened Midi output on "${output.getPortName(i)}"`);
+                    port = i;
                     break;
                 };
+                if (port === undefined) throw new Error(`Could not find port for name "${name}"`);
             }
         }
 
-        if (output.isPortOpen()) this.outputs.push(output);
+        if (output.isPortOpen()) {
+            this.outputs.push({
+                port: port!,
+                name: output.getPortName(port),
+                type: 'physical',
+                output
+            });
+            this.emit('outputUpdate', this.outputs);
+        }
     }
 
     public removePhysicalOutput(name?: string, port?: number) {
         if (!name && !port) throw new Error("No name or port specified");
 
         let index: number;
-        if (name && !port) index = this.outputs.findIndex(out => out.isPortOpen() && out.getPortName(out.getPort()).toLowerCase() === name.toLowerCase())
-        else if (!name && port) index = this.outputs.findIndex(out => out.isPortOpen() && out.getPort() === port); 
-        else if (name && port) index = this.outputs.findIndex(out => out.isPortOpen() && out.getPort() === port && out.getPortName(out.getPort()).toLowerCase() === name.toLowerCase());
+        if (name && !port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.name.toLowerCase() === name.toLowerCase())
+        else if (!name && port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.port === port); 
+        else if (name && port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.port === port && out.name.toLowerCase() === name.toLowerCase());
         else index = -1;
 
         if (index === -1) throw new Error(`No Output found with name ${name} or port ${port}`);
 
-        this.outputs[index].closePort();
+        this.outputs[index].output.closePort();
         this.outputs.splice(index, 1);
+        this.emit('outputUpdate', this.outputs);
     }
 
     public addVirtualOutput(name: string) {
@@ -209,7 +230,13 @@ export class Timecode extends EventEmitter {
 
         const output = new midi.Output();
         output.openVirtualPort(name);
-        this.outputs.push(output);
+        this.outputs.push({
+                port: output.getPort(),
+                name: output.getPortName(output.getPort()),
+                type: 'virtual',
+                output
+            });
+        this.emit('outputUpdate', this.outputs);
     }
 
     public start(reverse : boolean) {
@@ -218,10 +245,12 @@ export class Timecode extends EventEmitter {
 
         console.log('Timecode started');
 
+        this.emit('stateChange', 'start');
         this.interval = setInterval(() => this.sendTimecode(reverse), 1000 / this.maxFrames);
     }
 
     public stop() {
+        this.emit('stateChange', 'stop');
         clearInterval(this.interval);
         this.interval = undefined;
     }
