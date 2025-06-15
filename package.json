@@ -1,5 +1,5 @@
 {
-  "name": "timecode-app",
+  "name": "simplemtc",
   "version": "0.0.0",
   "main": "main.js",
   "private": true,

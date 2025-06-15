@@ -12,6 +12,7 @@ function createWindow() {
     height: 600,
     autoHideMenuBar: true,
     alwaysOnTop: true,
+    title: 'SimpleMTC',
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__dirname, 'preload.js')
