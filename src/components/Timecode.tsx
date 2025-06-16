@@ -5,13 +5,25 @@ import './Timecode.css'
 
 export default function Timecode() {
     const [timecode, setTimecode] = useState<number[]>([0, 0, 0, 0])
+    const [fps, setFps] = useState<number>(30);
 
     useEffect(() => {
-        const handleUpdate = (value: number[]) => {
-            setTimecode(value);
+        const unsubscribe = window.electronAPI.onTimecodeUpdate(setTimecode);
+
+        return () => {
+            unsubscribe();
+        }
+    }, []);
+
+    useEffect(() => {
+        function handleSettingUpdate(change: { type: string, value: any }) {
+            switch (change.type) {
+                case 'fps':
+                    setFps(change.value);
+            }
         }
 
-        const unsubscribe = window.electronAPI.onTimecodeUpdate(handleUpdate);
+        const unsubscribe = window.electronAPI.onSettingUpdate(handleSettingUpdate);
 
         return () => {
             unsubscribe();
@@ -27,6 +39,7 @@ export default function Timecode() {
                 <div id="seconds">{timecode[2].toString().padStart(2, '0')}</div>
                 <div id="frames">{timecode[3].toString().padStart(2, '0')}</div>
             </div>
+            <div id="fps">{fps} FPS</div>
         </div>
     )
 }

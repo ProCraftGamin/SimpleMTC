@@ -19,6 +19,7 @@ export class Timecode extends EventEmitter {
     private maxFrames: number = 30;
     private outputs: OutputEntry[] = [];
     private interval?: NodeJS.Timeout;
+    private reverse: boolean;
 
     constructor(fps: number, startOffset?: number[], maxTime?: number[]) {
         super();
@@ -96,7 +97,7 @@ export class Timecode extends EventEmitter {
                 case 7: dataByte = (i << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
             }
 
-            this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
+            if (this.outputs.length > 0) this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
 
             if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
             this.emit('timecode', this.currentTime);
@@ -116,6 +117,13 @@ export class Timecode extends EventEmitter {
             case 29.97: this.rate = 2; this.maxFrames = 30;  break;
             case 30: this.rate = 3; this.maxFrames = 30;  break;
         }
+
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = setInterval(() => this.sendTimecode(this.reverse), 1000 / this.maxFrames);
+        }
+
+        this.emit('settingUpdate', { type: 'fps', value: fps });
     }
 
     public getMaxFrames() {
@@ -259,12 +267,12 @@ export class Timecode extends EventEmitter {
     }
 
     public start(reverse : boolean) {
-        if (this.outputs.length <= 0) throw new Error('Midi outputs not initialized');
-        else if (this.interval) throw new Error('Timecode already running');
+        if (this.interval) throw new Error('Timecode already running');
 
         console.log('Timecode started');
 
         this.emit('stateChange', 'running');
+        this.reverse = reverse;
         this.interval = setInterval(() => this.sendTimecode(reverse), 1000 / this.maxFrames);
     }
 

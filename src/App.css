@@ -22,25 +22,8 @@ body {
   width: 100%;
 }
 
-#buttonWrapper {
+.App {
   display: flex;
-  justify-content: center;
-  gap: clamp(0.5em, 2vw, 4vw);
-}
-
-.button {
-  background-color: #3c3c3c;
-  color: white;
-  padding: clamp(0.25rem, 1vw, 0.75rem) clamp(0.5rem, 5vw, 2rem);
-  width: clamp(50px, 15vw, 100px);
-  font-size: clamp(15px, 1vw, 25px);
-  border-radius: 0.5em;
-  text-align: center;
-  transition: 300ms filter;
-  user-select: none;
-}
-
-.button:hover {
-  cursor: pointer;
-  filter: brightness(85%);
+  flex-direction: column;
+  gap: clamp(1em, 3vw, 3em);
 }

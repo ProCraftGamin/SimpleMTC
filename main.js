@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } = require('electron');
 const prompt = require('electron-prompt');
 const path = require('path');
 const isDev = require('electron-is-dev');
@@ -8,6 +8,7 @@ const os = require('os');
 const timecode = new Timecode(24);
 
 let mainWindow, menu;
+const lockState = { lock: false, password: null };
 
 function menuBuilder() {
   const outputsSubmenu = (() => {
@@ -17,6 +18,7 @@ function menuBuilder() {
     ? outputs.map((output, index) => {
       return {
         label: `${output.name} (${output.port})` || `Port ${output.port}`,
+        enabled: !lockState.lock,
         submenu: [
           {
             label: 'Remove output',
@@ -54,29 +56,109 @@ function menuBuilder() {
 
   menu = [
   {
+    label: 'Lock',
+    submenu: [
+      {
+        label: lockState.lock ? 'Unlock' : 'Lock',
+        click: async () => {
+          if (lockState.password) {
+            const input = await prompt({
+              title: 'Enter password',
+              label: 'Enter Password',
+              inputAttrs: {
+                type: 'password',
+              },
+              type: 'input',
+            })
+
+            if (input && input !== lockState.password) {
+              dialog.showMessageBox({
+                type: 'warning', // or 'none', 'warning', 'error'
+                buttons: ['OK'],
+                title: 'Incorrect password',
+                message: 'Incorrect password',
+              });
+            }
+            else if (!input) return;
+          }
+
+          lockState.lock = !lockState.lock;
+          let menu = Menu.buildFromTemplate(menuBuilder());
+          Menu.setApplicationMenu(menu);
+        }
+      },
+      {
+        label: lockState.password ? 'Change password' : 'Add password',
+        click: () => {
+          console.log(lockState.password);
+          prompt({
+              title: 'Enter password',
+              label: 'Password',
+              inputAttrs: {
+                type: 'password',
+              },
+              type: 'input',
+            }).then(password => {
+              if (!password) return;
+
+              lockState.password = password;
+              let menu = Menu.buildFromTemplate(menuBuilder());
+              Menu.setApplicationMenu(menu);
+              console.log(password);
+              console.log(lockState.password);
+          })
+        }
+      },
+      ...(lockState.password
+      ? [{
+        label: 'Remove password',
+        click: () => {
+          prompt({
+              title: 'Enter password',
+              label: 'Password',
+              inputAttrs: {
+                type: 'password',
+              },
+              type: 'input',
+            }).then(password => {
+              if (!password || password !== lockState.password) return;
+
+              lockState.password = null;
+              let menu = Menu.buildFromTemplate(menuBuilder());
+            Menu.setApplicationMenu(menu);
+          })
+        }
+      }] : [])
+    ]
+  },
+  {
     label: 'Fps',
     submenu: [
     {
       label: '30 FPS',
       type: 'radio',
+      enabled: !lockState.lock,
       checked: false,
       click: () => timecode.setFps(30),
     },
     {
       label: '29.97 FPS',
       type: 'radio',
+      enabled: !lockState.lock,
       checked: false,
       click: () => timecode.setFps(29.97),
     },
     {
       label: '25 FPS',
       type: 'radio',
+      enabled: !lockState.lock,
       checked: false,
       click: () => timecode.setFps(25),
     },
     {
       label: '24 FPS',
       type: 'radio',
+      enabled: !lockState.lock,
       checked: true,
       click: () => timecode.setFps(24),
     }
@@ -87,6 +169,7 @@ function menuBuilder() {
     submenu: [ 
       {
         label: 'Add new output',
+        enabled: !lockState.lock,
         submenu: [
           { label: 'Add virtual output', enabled: os.type() !== 'Windows_NT', click: () => {
             prompt({
@@ -109,7 +192,10 @@ function menuBuilder() {
             : [{ label: 'No physical outputs found', enabled: false }]
           ),
           { type: 'separator' },
-          { label: 'Refresh outputs', click: () => console.log('Refresh clicked') }
+          { label: 'Refresh outputs', enabled: !lockState.lock, click: () => {
+            let menu = Menu.buildFromTemplate(menuBuilder());
+            Menu.setApplicationMenu(menu);
+          } }
         ]
       },
       { type: 'separator' },
@@ -120,13 +206,14 @@ function menuBuilder() {
 return menu;
 }
 
-
 function createWindow() {
+  const icon = nativeImage.createFromPath('./icon.png');
+
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    alwaysOnTop: true,
     title: 'SimpleMTC',
+    icon: icon,
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -143,11 +230,13 @@ function createWindow() {
   mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   mainWindow.on('closed', () => (mainWindow = null));
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control || input.meta) && input.key.toLowerCase() === 'r') event.preventDefault();
+});
 }
 
 app.on('ready', async () => {
     ipcMain.on('timecode:setState', (e, newState) => {
-      console.log(newState);
       newState
       ? timecode.start(false)
       : timecode.stop();
@@ -164,18 +253,22 @@ app.on('ready', async () => {
     });
 
     timecode.on('outputUpdate', () => {
-      console.log('outputUpdate');
       menu = Menu.buildFromTemplate(menuBuilder());
       Menu.setApplicationMenu(menu);
+
+      mainWindow.webContents.send('timecode:outputChange', timecode.getActiveOutputs())
     });
     
     timecode.on('stateChange', (state) => {
-      console.log('[main] emitting stateChange with:', state); // <-- log this
       mainWindow.webContents.send('timecode:stateChange', state);
     });
 
-
-    timecode.addPhysicalOutput(null, 1);
+    timecode.on('settingUpdate', (change) => {
+      mainWindow.webContents.send('timecode:settingUpdate', change);
+    });
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('timecode:settingUpdate', { type: 'fps', value: timecode.getFps() });
+    })
 });
 
 app.on('window-all-closed', () => {

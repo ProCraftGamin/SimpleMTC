@@ -13,6 +13,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     return () => ipcRenderer.removeListener('timecode:stateChange', listener);
   },
+  onSettingUpdate: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('timecode:settingUpdate', listener);
+
+    return () => ipcRenderer.removeListener('timecode:settingUpdate', listener);
+  },
+  onOutputChange: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('timecode:outputChange', listener);
+
+    return () => ipcRenderer.removeListener('timecode:outputChange', listener);
+  },
   setState: (state) => ipcRenderer.send('timecode:setState', state),
   resetTime: () => ipcRenderer.send('timecode:resetTime'),
 });

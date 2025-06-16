@@ -120,7 +120,8 @@ var Timecode = /** @class */ (function (_super) {
                     dataByte = (i << 4) | ((this_1.currentTime[0] >> 4) & 0x01) | (this_1.rate << 1);
                     break;
             }
-            this_1.outputs.forEach(function (out) { return out.output.send([0xF1, dataByte]); });
+            if (this_1.outputs.length > 0)
+                this_1.outputs.forEach(function (out) { return out.output.send([0xF1, dataByte]); });
             if (this_1.currentTime.every(function (v, i) { return v === _this.maxTime[i]; }))
                 clearInterval(this_1.interval);
             this_1.emit('timecode', this_1.currentTime);
@@ -135,6 +136,7 @@ var Timecode = /** @class */ (function (_super) {
         return this.fps;
     };
     Timecode.prototype.setFps = function (fps) {
+        var _this = this;
         this.fps = fps;
         switch (fps) {
             case 24:
@@ -154,6 +156,11 @@ var Timecode = /** @class */ (function (_super) {
                 this.maxFrames = 30;
                 break;
         }
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = setInterval(function () { return _this.sendTimecode(_this.reverse); }, 1000 / this.maxFrames);
+        }
+        this.emit('settingUpdate', { type: 'fps', value: fps });
     };
     Timecode.prototype.getMaxFrames = function () {
         return this.maxFrames;
@@ -307,12 +314,11 @@ var Timecode = /** @class */ (function (_super) {
     };
     Timecode.prototype.start = function (reverse) {
         var _this = this;
-        if (this.outputs.length <= 0)
-            throw new Error('Midi outputs not initialized');
-        else if (this.interval)
+        if (this.interval)
             throw new Error('Timecode already running');
         console.log('Timecode started');
         this.emit('stateChange', 'running');
+        this.reverse = reverse;
         this.interval = setInterval(function () { return _this.sendTimecode(reverse); }, 1000 / this.maxFrames);
     };
     Timecode.prototype.stop = function () {
