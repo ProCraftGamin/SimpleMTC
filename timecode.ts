@@ -118,6 +118,10 @@ export class Timecode extends EventEmitter {
         }
     }
 
+    public getMaxFrames() {
+        return this.maxFrames;
+    }
+
     public getOffset() {
         return this.startOffset;
     }
@@ -133,6 +137,21 @@ export class Timecode extends EventEmitter {
         ) throw new Error('Offset array is invalid\nFormat must be [hh, mm, ss, ff]');
         else this.startOffset = offset;
         
+    }
+
+    public getTime() {
+        return this.currentTime;
+    }
+
+    public setTime(hours: number, minutes: number, seconds: number, frames: number) {
+        if (hours >= 24) throw new Error(`Invalid hours number\nExpected a range from 0-23, recieved ${hours}`);
+        else if (minutes >= 60) throw new Error(`Invalid minutes number\nExpected a range from 0-59, recieved ${minutes}`);
+        else if (seconds >= 60) throw new Error(`Invalid seconds number\nExpected a range from 0-59, recieved ${seconds}`);
+        else if (frames > this.maxFrames) throw new Error(`Invalid frames number\nExpected a range from 0-${this.maxFrames}, recieved ${minutes}`);
+        else {
+            this.currentTime = [hours, minutes, seconds, frames];
+            this.sendTimecode(false);
+        }
     }
 
     public getMaxTime() {
@@ -245,12 +264,12 @@ export class Timecode extends EventEmitter {
 
         console.log('Timecode started');
 
-        this.emit('stateChange', 'start');
+        this.emit('stateChange', 'running');
         this.interval = setInterval(() => this.sendTimecode(reverse), 1000 / this.maxFrames);
     }
 
     public stop() {
-        this.emit('stateChange', 'stop');
+        this.emit('stateChange', 'stopped');
         clearInterval(this.interval);
         this.interval = undefined;
     }

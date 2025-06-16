@@ -155,6 +155,9 @@ var Timecode = /** @class */ (function (_super) {
                 break;
         }
     };
+    Timecode.prototype.getMaxFrames = function () {
+        return this.maxFrames;
+    };
     Timecode.prototype.getOffset = function () {
         return this.startOffset;
     };
@@ -175,6 +178,23 @@ var Timecode = /** @class */ (function (_super) {
             throw new Error('Offset array is invalid\nFormat must be [hh, mm, ss, ff]');
         else
             this.startOffset = offset;
+    };
+    Timecode.prototype.getTime = function () {
+        return this.currentTime;
+    };
+    Timecode.prototype.setTime = function (hours, minutes, seconds, frames) {
+        if (hours >= 24)
+            throw new Error("Invalid hours number\nExpected a range from 0-23, recieved ".concat(hours));
+        else if (minutes >= 60)
+            throw new Error("Invalid minutes number\nExpected a range from 0-59, recieved ".concat(minutes));
+        else if (seconds >= 60)
+            throw new Error("Invalid seconds number\nExpected a range from 0-59, recieved ".concat(seconds));
+        else if (frames > this.maxFrames)
+            throw new Error("Invalid frames number\nExpected a range from 0-".concat(this.maxFrames, ", recieved ").concat(minutes));
+        else {
+            this.currentTime = [hours, minutes, seconds, frames];
+            this.sendTimecode(false);
+        }
     };
     Timecode.prototype.getMaxTime = function () {
         return this.maxTime;
@@ -292,11 +312,11 @@ var Timecode = /** @class */ (function (_super) {
         else if (this.interval)
             throw new Error('Timecode already running');
         console.log('Timecode started');
-        this.emit('stateChange', 'start');
+        this.emit('stateChange', 'running');
         this.interval = setInterval(function () { return _this.sendTimecode(reverse); }, 1000 / this.maxFrames);
     };
     Timecode.prototype.stop = function () {
-        this.emit('stateChange', 'stop');
+        this.emit('stateChange', 'stopped');
         clearInterval(this.interval);
         this.interval = undefined;
     };

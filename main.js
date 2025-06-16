@@ -117,11 +117,6 @@ function menuBuilder() {
     ]
   }
 ]
-
-console.log(JSON.stringify(menu, null, 2));
-
-console.log(os.type());
-
 return menu;
 }
 
@@ -134,7 +129,8 @@ function createWindow() {
     title: 'SimpleMTC',
     webPreferences: {
       nodeIntegration: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      devTools: true,
     },
   });
 
@@ -144,10 +140,21 @@ function createWindow() {
 
   mainWindow.loadURL(startURL);
 
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+
   mainWindow.on('closed', () => (mainWindow = null));
 }
 
 app.on('ready', async () => {
+    ipcMain.on('timecode:setState', (e, newState) => {
+      console.log(newState);
+      newState
+      ? timecode.start(false)
+      : timecode.stop();
+    });
+
+    ipcMain.on('timecode:resetTime', () => timecode.setTime(23, 59, 59, timecode.getMaxFrames()));
+
     createWindow();
     let menu = Menu.buildFromTemplate(menuBuilder());
     Menu.setApplicationMenu(menu);
@@ -160,11 +167,15 @@ app.on('ready', async () => {
       console.log('outputUpdate');
       menu = Menu.buildFromTemplate(menuBuilder());
       Menu.setApplicationMenu(menu);
-    })
+    });
+    
+    timecode.on('stateChange', (state) => {
+      console.log('[main] emitting stateChange with:', state); // <-- log this
+      mainWindow.webContents.send('timecode:stateChange', state);
+    });
+
 
     timecode.addPhysicalOutput(null, 1);
-
-    timecode.start(false);
 });
 
 app.on('window-all-closed', () => {
