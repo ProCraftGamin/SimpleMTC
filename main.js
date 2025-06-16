@@ -242,7 +242,14 @@ app.on('ready', async () => {
       : timecode.stop();
     });
 
-    ipcMain.on('timecode:resetTime', () => timecode.setTime(23, 59, 59, timecode.getMaxFrames()));
+    ipcMain.on('timecode:resetTime', () => timecode.setTime([0, 0, 0, 0]));
+
+    ipcMain.on('timecode:set', (e, time) => {
+      timecode.setTime(time.map(item => {
+        return item.toString();
+      }))
+
+    });
 
     createWindow();
     let menu = Menu.buildFromTemplate(menuBuilder());

@@ -17,9 +17,9 @@
     background-color: #303030;
     outline: none;
     border: none;
-    padding: none;
-    margin: none;
     width: 2ch;
+    transition: 300ms backgroundColor;
+    border-radius: 0.1em;
 }
 
 #timeWrapper input:focus {
@@ -29,6 +29,10 @@
 #timeWrapper input::selection {
   background: rgba(255, 255, 255, 0.3);
   color: white;
+}
+
+input.enabled {
+    background-color: #333333 !important;
 }
 
 .\:after::after {

@@ -43,37 +43,39 @@ export class Timecode extends EventEmitter {
     }
 
     private sendTimecode(reverse: boolean) {
-        if (reverse) {
-            this.currentTime[3]--;
-            if (this.currentTime[3] >= this.maxFrames) {
-                this.currentTime[3] = 0;
-                this.currentTime[2]--;
-                if (this.currentTime[2] >= 60) {
-                    this.currentTime[2] = 0;
-                    this.currentTime[1]--;
-                    if (this.currentTime[1] >= 60) {
-                        this.currentTime[1] = 0;
-                        this.currentTime[0]--;
-                        if (this.currentTime[0] <= 0) {
-                            clearInterval(this.interval);
+        if (this.interval) {
+            if (reverse) {
+                this.currentTime[3]--;
+                if (this.currentTime[3] >= this.maxFrames) {
+                    this.currentTime[3] = 0;
+                    this.currentTime[2]--;
+                    if (this.currentTime[2] >= 60) {
+                        this.currentTime[2] = 0;
+                        this.currentTime[1]--;
+                        if (this.currentTime[1] >= 60) {
+                            this.currentTime[1] = 0;
+                            this.currentTime[0]--;
+                            if (this.currentTime[0] <= 0) {
+                                clearInterval(this.interval);
+                            }
                         }
                     }
                 }
             }
-        }
-        else {
-            this.currentTime[3]++;
-            if (this.currentTime[3] >= this.maxFrames) {
-                this.currentTime[3] = 0;
-                this.currentTime[2]++;
-                if (this.currentTime[2] >= 60) {
-                    this.currentTime[2] = 0;
-                    this.currentTime[1]++;
-                    if (this.currentTime[1] >= 60) {
-                        this.currentTime[1] = 0;
-                        this.currentTime[0]++;
-                        if (this.currentTime[0] >= 24) {
-                            this.currentTime[0] = 0;
+            else {
+                this.currentTime[3]++;
+                if (this.currentTime[3] >= this.maxFrames) {
+                    this.currentTime[3] = 0;
+                    this.currentTime[2]++;
+                    if (this.currentTime[2] >= 60) {
+                        this.currentTime[2] = 0;
+                        this.currentTime[1]++;
+                        if (this.currentTime[1] >= 60) {
+                            this.currentTime[1] = 0;
+                            this.currentTime[0]++;
+                            if (this.currentTime[0] >= 24) {
+                                this.currentTime[0] = 0;
+                            }
                         }
                     }
                 }
@@ -98,10 +100,9 @@ export class Timecode extends EventEmitter {
             }
 
             if (this.outputs.length > 0) this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
-
-            if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
-            this.emit('timecode', this.currentTime);
         };
+        if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
+        this.emit('timecode', this.currentTime);
     }
 
     public getFps() {
@@ -151,15 +152,16 @@ export class Timecode extends EventEmitter {
         return this.currentTime;
     }
 
-    public setTime(hours: number, minutes: number, seconds: number, frames: number) {
-        if (hours >= 24) throw new Error(`Invalid hours number\nExpected a range from 0-23, recieved ${hours}`);
-        else if (minutes >= 60) throw new Error(`Invalid minutes number\nExpected a range from 0-59, recieved ${minutes}`);
-        else if (seconds >= 60) throw new Error(`Invalid seconds number\nExpected a range from 0-59, recieved ${seconds}`);
-        else if (frames > this.maxFrames) throw new Error(`Invalid frames number\nExpected a range from 0-${this.maxFrames}, recieved ${minutes}`);
+    public setTime(time) {
+        if (time[0] >= 24) throw new Error(`Invalid hours number\nExpected a range from 0-23, recieved ${time[0]}`);
+        else if (time[1] >= 60) throw new Error(`Invalid minutes number\nExpected a range from 0-59, recieved ${time[1]}`);
+        else if (time[2] >= 60) throw new Error(`Invalid seconds number\nExpected a range from 0-59, recieved ${time[2]}`);
+        else if (time[3] > this.maxFrames) throw new Error(`Invalid frames number\nExpected a range from 0-${this.maxFrames}, recieved ${time[3]}`);
         else {
-            this.currentTime = [hours, minutes, seconds, frames];
+            this.currentTime = time;
             this.sendTimecode(false);
         }
+        
     }
 
     public getMaxTime() {

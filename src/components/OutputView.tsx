@@ -8,7 +8,6 @@ export default function OutputView() {
     useEffect(() => {
         const unsubscribe = window.electronAPI.onOutputChange((outputsArr) => {
             if (outputsArr.length > 0) setOutputsString(outputsArr.reduce((accumulator, current, index) => {
-                console.log(accumulator);
                 return `${accumulator}${index <= 0 ? '' : ', '}${current.name}`;
             }, ''));
             else setOutputsString("No outputs");

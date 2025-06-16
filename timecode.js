@@ -56,37 +56,39 @@ var Timecode = /** @class */ (function (_super) {
     }
     Timecode.prototype.sendTimecode = function (reverse) {
         var _this = this;
-        if (reverse) {
-            this.currentTime[3]--;
-            if (this.currentTime[3] >= this.maxFrames) {
-                this.currentTime[3] = 0;
-                this.currentTime[2]--;
-                if (this.currentTime[2] >= 60) {
-                    this.currentTime[2] = 0;
-                    this.currentTime[1]--;
-                    if (this.currentTime[1] >= 60) {
-                        this.currentTime[1] = 0;
-                        this.currentTime[0]--;
-                        if (this.currentTime[0] <= 0) {
-                            clearInterval(this.interval);
+        if (this.interval) {
+            if (reverse) {
+                this.currentTime[3]--;
+                if (this.currentTime[3] >= this.maxFrames) {
+                    this.currentTime[3] = 0;
+                    this.currentTime[2]--;
+                    if (this.currentTime[2] >= 60) {
+                        this.currentTime[2] = 0;
+                        this.currentTime[1]--;
+                        if (this.currentTime[1] >= 60) {
+                            this.currentTime[1] = 0;
+                            this.currentTime[0]--;
+                            if (this.currentTime[0] <= 0) {
+                                clearInterval(this.interval);
+                            }
                         }
                     }
                 }
             }
-        }
-        else {
-            this.currentTime[3]++;
-            if (this.currentTime[3] >= this.maxFrames) {
-                this.currentTime[3] = 0;
-                this.currentTime[2]++;
-                if (this.currentTime[2] >= 60) {
-                    this.currentTime[2] = 0;
-                    this.currentTime[1]++;
-                    if (this.currentTime[1] >= 60) {
-                        this.currentTime[1] = 0;
-                        this.currentTime[0]++;
-                        if (this.currentTime[0] >= 24) {
-                            this.currentTime[0] = 0;
+            else {
+                this.currentTime[3]++;
+                if (this.currentTime[3] >= this.maxFrames) {
+                    this.currentTime[3] = 0;
+                    this.currentTime[2]++;
+                    if (this.currentTime[2] >= 60) {
+                        this.currentTime[2] = 0;
+                        this.currentTime[1]++;
+                        if (this.currentTime[1] >= 60) {
+                            this.currentTime[1] = 0;
+                            this.currentTime[0]++;
+                            if (this.currentTime[0] >= 24) {
+                                this.currentTime[0] = 0;
+                            }
                         }
                     }
                 }
@@ -122,15 +124,15 @@ var Timecode = /** @class */ (function (_super) {
             }
             if (this_1.outputs.length > 0)
                 this_1.outputs.forEach(function (out) { return out.output.send([0xF1, dataByte]); });
-            if (this_1.currentTime.every(function (v, i) { return v === _this.maxTime[i]; }))
-                clearInterval(this_1.interval);
-            this_1.emit('timecode', this_1.currentTime);
         };
         var this_1 = this;
         for (var i = reverse ? 7 : 0; reverse ? i >= 0 : i <= 8; reverse ? i-- : i++) {
             _loop_1(i);
         }
         ;
+        if (this.currentTime.every(function (v, i) { return v === _this.maxTime[i]; }))
+            clearInterval(this.interval);
+        this.emit('timecode', this.currentTime);
     };
     Timecode.prototype.getFps = function () {
         return this.fps;
@@ -189,17 +191,17 @@ var Timecode = /** @class */ (function (_super) {
     Timecode.prototype.getTime = function () {
         return this.currentTime;
     };
-    Timecode.prototype.setTime = function (hours, minutes, seconds, frames) {
-        if (hours >= 24)
-            throw new Error("Invalid hours number\nExpected a range from 0-23, recieved ".concat(hours));
-        else if (minutes >= 60)
-            throw new Error("Invalid minutes number\nExpected a range from 0-59, recieved ".concat(minutes));
-        else if (seconds >= 60)
-            throw new Error("Invalid seconds number\nExpected a range from 0-59, recieved ".concat(seconds));
-        else if (frames > this.maxFrames)
-            throw new Error("Invalid frames number\nExpected a range from 0-".concat(this.maxFrames, ", recieved ").concat(minutes));
+    Timecode.prototype.setTime = function (time) {
+        if (time[0] >= 24)
+            throw new Error("Invalid hours number\nExpected a range from 0-23, recieved ".concat(time[0]));
+        else if (time[1] >= 60)
+            throw new Error("Invalid minutes number\nExpected a range from 0-59, recieved ".concat(time[1]));
+        else if (time[2] >= 60)
+            throw new Error("Invalid seconds number\nExpected a range from 0-59, recieved ".concat(time[2]));
+        else if (time[3] > this.maxFrames)
+            throw new Error("Invalid frames number\nExpected a range from 0-".concat(this.maxFrames, ", recieved ").concat(time[3]));
         else {
-            this.currentTime = [hours, minutes, seconds, frames];
+            this.currentTime = time;
             this.sendTimecode(false);
         }
     };

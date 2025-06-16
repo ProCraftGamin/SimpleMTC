@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEffect, useState, useRef } from 'react';
 import './Timecode.css'
 
-export default function Timecode() {
+export default function Timecode({ running }: { running: boolean }) {
   const [timecode, setTimecode] = useState<string[]>(['00', '00', '00', '00']);
   const [fps, setFps] = useState<number>(30);
 
@@ -87,6 +87,8 @@ export default function Timecode() {
         setTimecode([timecode[0], timecode[1], timecode[2], padded]);
         break;
     }
+
+    window.electronAPI.setTimecode(timecode);
   }
 
   return (
@@ -96,6 +98,7 @@ export default function Timecode() {
         <input
           ref={inputsRef.hours}
           id="hours"
+          className={running ? '' : 'enabled'}
           type="text"
           maxLength={2}
           defaultValue={timecode[0]}
@@ -103,12 +106,14 @@ export default function Timecode() {
           onChange={handleChange}
           onBeforeInput={handleBeforeInput}
           inputMode="numeric"
+          disabled={running}
         />
         </div>
         <div className=":after">
         <input
           ref={inputsRef.minutes}
           id="minutes"
+          className={running ? '' : 'enabled'}
           type="text"
           maxLength={2}
           defaultValue={timecode[1]}
@@ -116,12 +121,14 @@ export default function Timecode() {
           onChange={handleChange}
           onBeforeInput={handleBeforeInput}
           inputMode="numeric"
+          disabled={running}
         />
         </div>
         <div className=";after">
         <input
           ref={inputsRef.seconds}
           id="seconds"
+          className={running ? '' : 'enabled'}
           type="text"
           maxLength={2}
           defaultValue={timecode[2]}
@@ -129,11 +136,13 @@ export default function Timecode() {
           onChange={handleChange}
           onBeforeInput={handleBeforeInput}
           inputMode="numeric"
+          disabled={running}
         />
         </div>
         <input
           ref={inputsRef.frames}
           id="frames"
+          className={running ? '' : 'enabled'}
           type="text"
           maxLength={2}
           defaultValue={timecode[3]}
@@ -141,6 +150,7 @@ export default function Timecode() {
           onChange={handleChange}
           onBeforeInput={handleBeforeInput}
           inputMode="numeric"
+          disabled={running}
         />
       </div>
       <div id="fps">{fps} FPS</div>

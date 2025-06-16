@@ -26,5 +26,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('timecode:outputChange', listener);
   },
   setState: (state) => ipcRenderer.send('timecode:setState', state),
+  setTimecode: (timecode) => ipcRenderer.send('timecode:set', timecode),
   resetTime: () => ipcRenderer.send('timecode:resetTime'),
 });
