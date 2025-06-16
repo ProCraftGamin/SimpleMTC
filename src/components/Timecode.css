@@ -9,21 +9,40 @@
     justify-content: center;
 }
 
-#timeWrapper div {
+#timeWrapper input {
     font-size: clamp(2.5rem, 15vw, 12rem);
     text-align: center;
     color: white;
     line-height: 80%;
+    background-color: #303030;
+    outline: none;
+    border: none;
+    padding: none;
+    margin: none;
+    width: 2ch;
 }
 
+#timeWrapper input:focus {
+    outline: none;
+}
 
-#hours::after,
-#minutes::after {
+#timeWrapper input::selection {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.\:after::after {
     content: ':';
 }
 
-#seconds::after {
+.\;after::after {
     content: ';';
+}
+
+.\;after::after,
+.\:after::after {
+    color: white;
+    font-size: clamp(2.5rem, 15vw, 12rem);
 }
 
 #fps {
