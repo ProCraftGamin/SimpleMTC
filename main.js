@@ -1,5 +1,8 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } = require('electron');
+
 app.commandLine.appendSwitch('gtk-version', '3');
+app.name = "SimpleMTC";
+
 const prompt = require('electron-prompt');
 const path = require('path');
 const { Timecode } = require('./timecode');
@@ -7,7 +10,7 @@ const os = require('os');
 
 const timecode = new Timecode(24);
 
-let mainWindow, menu;
+let mainWindow, menu, timecodeRunning;
 const lockState = { lock: false, password: null };
 
 function menuBuilder() {
@@ -53,15 +56,18 @@ function menuBuilder() {
   })();
 
   menu = [
+      ...(process.platform === "darwin" ? [{
+    role: 'appMenu',
+    }] : []),
   {
     label: 'Lock',
     submenu: [
       {
-        label: lockState.lock ? 'Unlock' : 'Lock',
+        label: lockState.lock ? 'Unlock Settings' : 'Lock Settings',
         click: async () => {
           if (lockState.password) {
             const input = await prompt({
-              title: 'Enter password',
+              title: 'Enter Password',
               label: 'Enter Password',
               inputAttrs: {
                 type: 'password',
@@ -169,7 +175,7 @@ function menuBuilder() {
         label: 'Add new output',
         enabled: !lockState.lock,
         submenu: [
-          { label: 'Add virtual output', enabled: os.type() !== 'Windows_NT', click: () => {
+          { label: 'Add virtual output', enabled: process.platform !== 'win32', click: () => {
             prompt({
               title: 'Name the virtual output',
               label: 'Name',
@@ -227,13 +233,55 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
-  mainWindow.on('closed', () => (mainWindow = null));
+  mainWindow.on('close', (e) => {
+    e.preventDefault();
+    if (timecodeRunning === 'running') {
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'Quit SimpleMTC',
+        message: 'Timecode is currently running! Do you still want to quit?',
+        buttons: ["Cancel", "Quit"],
+        defaultId: 0,
+        cancelId: 0,
+      }).then(response => {
+        console.log(response);
+        if (response.response === 1) {
+          timecode.stop();
+          mainWindow.removeAllListeners('close');
+          app.exit();
+        }
+      })
+    } else {
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'Quit SimpleMTC',
+        message: 'Do you really want to quit SimpleMTC?',
+        buttons: ["Cancel", "Quit"],
+        defaultId: 0,
+        cancelId: 0
+      }).then(response => {
+        if (response.response === 1) {
+          mainWindow.removeAllListeners('close');
+          app.exit();
+        }
+      })
+    }
+  });
+
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.control || input.meta) && input.key.toLowerCase() === 'r') event.preventDefault();
 });
 }
 
 app.on('ready', async () => {
+    if (process.platform === 'darwin') {
+      app.setAboutPanelOptions({
+        applicationName: 'SimpleMTC',
+        applicationVersion: '0.0.0',
+        copyright: '© 2025 ProCraftGamin',
+      });
+    }
+
     ipcMain.on('timecode:setState', (e, newState) => {
       newState
       ? timecode.start(false)
@@ -266,6 +314,7 @@ app.on('ready', async () => {
     
     timecode.on('stateChange', (state) => {
       mainWindow.webContents.send('timecode:stateChange', state);
+      timecodeRunning = state;
     });
 
     timecode.on('settingUpdate', (change) => {

@@ -327,6 +327,7 @@ var Timecode = /** @class */ (function (_super) {
         this.emit('stateChange', 'stopped');
         clearInterval(this.interval);
         this.interval = undefined;
+        console.log('Timecode stopped');
     };
     return Timecode;
 }(EventEmitter));

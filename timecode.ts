@@ -283,5 +283,6 @@ export class Timecode extends EventEmitter {
         this.emit('stateChange', 'stopped');
         clearInterval(this.interval);
         this.interval = undefined;
+        console.log('Timecode stopped');
     }
 }
