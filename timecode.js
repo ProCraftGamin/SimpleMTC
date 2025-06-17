@@ -17,7 +17,7 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Timecode = void 0;
 var EventEmitter = require('events');
-var midi = require('midi');
+var midi = require('@julusian/midi');
 var os = require('os');
 var Timecode = /** @class */ (function (_super) {
     __extends(Timecode, _super);
@@ -283,12 +283,12 @@ var Timecode = /** @class */ (function (_super) {
             this.emit('outputUpdate', this.outputs);
         }
     };
-    Timecode.prototype.removePhysicalOutput = function (name, port) {
+    Timecode.prototype.removeOutput = function (name, port) {
         if (!name && !port)
             throw new Error("No name or port specified");
         var index;
         if (name && !port)
-            index = this.outputs.findIndex(function (out) { return out.output.isPortOpen() && out.name.toLowerCase() === name.toLowerCase(); });
+            index = this.outputs.findIndex(function (out) { return (out.output.isPortOpen() || out.type === 'virtual') && out.name.toLowerCase() === name.toLowerCase(); });
         else if (!name && port)
             index = this.outputs.findIndex(function (out) { return out.output.isPortOpen() && out.port === port; });
         else if (name && port)
@@ -307,8 +307,8 @@ var Timecode = /** @class */ (function (_super) {
         var output = new midi.Output();
         output.openVirtualPort(name);
         this.outputs.push({
-            port: output.getPort(),
-            name: output.getPortName(output.getPort()),
+            port: null,
+            name: name,
             type: 'virtual',
             output: output
         });

@@ -1,10 +1,11 @@
 const EventEmitter = require('events');
 
-const midi = require('midi');
+const midi = require('@julusian/midi');
 const os = require('os');
 
 interface OutputEntry {
-    port: number,
+    port: number | null,
+    close?: void,
     name: string,
     type: string,
     output: InstanceType<typeof midi.Output>;
@@ -192,7 +193,7 @@ export class Timecode extends EventEmitter {
     }
 
 
-    public getActiveOutputs(): { name: string; type: string; port: number }[] {
+    public getActiveOutputs(): { name: string; type: string; port: number | null }[] {
         return this.outputs.map(({ name, type, port }) => ({ name, type, port }));
     }
 
@@ -238,11 +239,11 @@ export class Timecode extends EventEmitter {
         }
     }
 
-    public removePhysicalOutput(name?: string, port?: number) {
+    public removeOutput(name?: string, port?: number) {
         if (!name && !port) throw new Error("No name or port specified");
 
         let index: number;
-        if (name && !port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.name.toLowerCase() === name.toLowerCase())
+        if (name && !port) index = this.outputs.findIndex(out => (out.output.isPortOpen() || out.type === 'virtual') && out.name.toLowerCase() === name.toLowerCase())
         else if (!name && port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.port === port); 
         else if (name && port) index = this.outputs.findIndex(out => out.output.isPortOpen() && out.port === port && out.name.toLowerCase() === name.toLowerCase());
         else index = -1;
@@ -260,8 +261,8 @@ export class Timecode extends EventEmitter {
         const output = new midi.Output();
         output.openVirtualPort(name);
         this.outputs.push({
-                port: output.getPort(),
-                name: output.getPortName(output.getPort()),
+                port: null,
+                name: name,
                 type: 'virtual',
                 output
             });

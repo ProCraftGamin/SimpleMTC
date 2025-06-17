@@ -1,4 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } = require('electron');
+app.commandLine.appendSwitch('gtk-version', '3');
 const prompt = require('electron-prompt');
 const path = require('path');
 const isDev = require('electron-is-dev');
@@ -17,13 +18,13 @@ function menuBuilder() {
     return outputs.length > 0
     ? outputs.map((output, index) => {
       return {
-        label: `${output.name} (${output.port})` || `Port ${output.port}`,
+        label: `${output.name} (${output.type === 'virtual' ? 'virtual' : output.port})` || `Port ${output.port}`,
         enabled: !lockState.lock,
         submenu: [
           {
             label: 'Remove output',
             type: 'normal',
-            click: () => output.type === 'physical' ? timecode.removePhysicalOutput(null, output.port) : timecode.removeVirtualOutput(output.name), // removeVirtualOutput isn't implimented yet
+            click: () => timecode.removeOutput(output.name, output.port),
           }
         ]
       }
@@ -39,18 +40,16 @@ function menuBuilder() {
     return outputs.length > 0
     ? outputs.filter(output => 
       {
-        console.log(output);
-        console.log(activeOutputs);
 
         return !activeOutputs.some(activeOutput => activeOutput.name.trim().toLowerCase() === output.name.trim().toLowerCase());
-  })
-    .map((output, index) => {
+      })
+      .map((output, index) => {
 
-      return {
-        label: `${output.name} (${output.port})`,
-        click: () => timecode.addPhysicalOutput(output.name, output.port),
-      }
-    })
+        return {
+          label: `${output.name} (${output.port})`,
+          click: () => timecode.addPhysicalOutput(output.name, output.port),
+        }
+      })
     : [];
   })();
 
