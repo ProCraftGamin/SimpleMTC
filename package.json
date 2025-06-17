@@ -1,8 +1,11 @@
 {
   "name": "simplemtc",
+  "author": "ProCraftGamin",
+  "description": "A simple app to run MIDI Timecode (MTC) over physical and virtual outputs.",
   "version": "0.0.0",
   "main": "main.js",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@julusian/midi": "^3.6.1",
     "@testing-library/dom": "^10.4.0",
@@ -27,7 +30,8 @@
     "dist": "electron-builder",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "rebuild": "electron-rebuild"
+    "rebuild": "electron-rebuild",
+    "package": "tsc timecode.ts && npm run build && npx electron-builder"
   },
   "eslintConfig": {
     "extends": [
@@ -49,8 +53,36 @@
   },
   "devDependencies": {
     "electron": "^36.4.0",
-    "electron-is-dev": "^3.0.1",
     "electron-rebuild": "^3.2.9",
     "ts-node": "^10.9.2"
+  },
+  "build": {
+    "appId": "com.procraftgamin.simplemtc",
+    "productName": "SimpleMTC",
+    "extends": null,
+    "files": [
+      "dist/",
+      "build/",
+      "dist-electron/",
+      "main.js",
+      "preload.js",
+      "timecode.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon256.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility",
+      "icon": "assets/icon512.png"
+    }
   }
 }

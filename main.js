@@ -2,7 +2,6 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage } = require('elec
 app.commandLine.appendSwitch('gtk-version', '3');
 const prompt = require('electron-prompt');
 const path = require('path');
-const isDev = require('electron-is-dev');
 const { Timecode } = require('./timecode');
 const os = require('os');
 
@@ -206,13 +205,11 @@ return menu;
 }
 
 function createWindow() {
-  const icon = nativeImage.createFromPath('./icon.png');
 
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     title: 'SimpleMTC',
-    icon: icon,
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -220,13 +217,15 @@ function createWindow() {
     },
   });
 
-  const startURL = isDev
-    ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, 'build/index.html')}`;
+  const startURL = app.isPackaged
+    ? `file://${path.join(__dirname, 'build/index.html')}`
+    : 'http://localhost:3000';
 
   mainWindow.loadURL(startURL);
 
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
 
   mainWindow.on('closed', () => (mainWindow = null));
   mainWindow.webContents.on('before-input-event', (event, input) => {
