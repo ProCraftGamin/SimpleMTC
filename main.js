@@ -6,12 +6,12 @@ app.name = "SimpleMTC";
 const prompt = require('electron-prompt');
 const path = require('path');
 const { Timecode } = require('./timecode');
-const os = require('os');
+const fs = require('fs');
 
-const timecode = new Timecode(24);
+const timecode = new Timecode(30);
 
 let mainWindow, menu, timecodeRunning;
-const lockState = { lock: false, password: null };
+const lockState = { lockState: false, password: null };
 
 function menuBuilder() {
   const outputsSubmenu = (() => {
@@ -21,7 +21,7 @@ function menuBuilder() {
     ? outputs.map((output, index) => {
       return {
         label: `${output.name} (${output.type === 'virtual' ? 'virtual' : output.port})` || `Port ${output.port}`,
-        enabled: !lockState.lock,
+        enabled: !lockState.locked,
         submenu: [
           {
             label: 'Remove output',
@@ -55,6 +55,8 @@ function menuBuilder() {
     : [];
   })();
 
+  const fps = timecode.getFps();
+
   menu = [
       ...(process.platform === "darwin" ? [{
     role: 'appMenu',
@@ -63,7 +65,7 @@ function menuBuilder() {
     label: 'Lock',
     submenu: [
       {
-        label: lockState.lock ? 'Unlock Settings' : 'Lock Settings',
+        label: lockState.locked ? 'Unlock Settings' : 'Lock Settings',
         click: async () => {
           if (lockState.password) {
             const input = await prompt({
@@ -86,7 +88,7 @@ function menuBuilder() {
             else if (!input) return;
           }
 
-          lockState.lock = !lockState.lock;
+          lockState.locked = !lockState.locked;
           let menu = Menu.buildFromTemplate(menuBuilder());
           Menu.setApplicationMenu(menu);
         }
@@ -141,29 +143,29 @@ function menuBuilder() {
     {
       label: '30 FPS',
       type: 'radio',
-      enabled: !lockState.lock,
-      checked: false,
+      enabled: !lockState.locked,
+      checked: fps === 30,
       click: () => timecode.setFps(30),
     },
     {
       label: '29.97 FPS',
       type: 'radio',
-      enabled: !lockState.lock,
-      checked: false,
+      enabled: !lockState.locked,
+      checked: fps === 29.97,
       click: () => timecode.setFps(29.97),
     },
     {
       label: '25 FPS',
       type: 'radio',
-      enabled: !lockState.lock,
-      checked: false,
+      enabled: !lockState.locked,
+      checked: fps === 25,
       click: () => timecode.setFps(25),
     },
     {
       label: '24 FPS',
       type: 'radio',
-      enabled: !lockState.lock,
-      checked: true,
+      enabled: !lockState.locked,
+      checked: fps === 24,
       click: () => timecode.setFps(24),
     }
     ]
@@ -173,7 +175,7 @@ function menuBuilder() {
     submenu: [ 
       {
         label: 'Add new output',
-        enabled: !lockState.lock,
+        enabled: !lockState.locked,
         submenu: [
           { label: 'Add virtual output', enabled: process.platform !== 'win32', click: () => {
             prompt({
@@ -196,7 +198,7 @@ function menuBuilder() {
             : [{ label: 'No physical outputs found', enabled: false }]
           ),
           { type: 'separator' },
-          { label: 'Refresh outputs', enabled: !lockState.lock, click: () => {
+          { label: 'Refresh outputs', enabled: !lockState.locked, click: () => {
             let menu = Menu.buildFromTemplate(menuBuilder());
             Menu.setApplicationMenu(menu);
           } }
@@ -270,10 +272,12 @@ function createWindow() {
 
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.control || input.meta) && input.key.toLowerCase() === 'r') event.preventDefault();
+    else if (input.code === 'Space' && input.type === 'keyDown') timecodeRunning === 'running' ? timecode.stop() : timecode.start();
 });
 }
 
 app.on('ready', async () => {
+    
     if (process.platform === 'darwin') {
       app.setAboutPanelOptions({
         applicationName: 'SimpleMTC',
@@ -320,8 +324,28 @@ app.on('ready', async () => {
     timecode.on('settingUpdate', (change) => {
       mainWindow.webContents.send('timecode:settingUpdate', change);
     });
+
+
     mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow.webContents.send('timecode:settingUpdate', { type: 'fps', value: timecode.getFps() });
+      fs.readFile(path.join(app.getPath('userData'), 'appState.json'), (err, data) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          fs.writeFileSync(path.join(app.getPath('userData'), 'appState.json'), JSON.stringify({ timecode: timecode.getTime(), outputs: [], fps: timecode.getFps(), lock: { locked: lockState.locked, password: lockState.password }}));
+        }
+        else throw err;
+      }
+      else {
+        data = JSON.parse(data);
+        lockState.locked = data.lock.locked;
+        lockState.password = data.lock.password;
+        timecode.setTime(data.timecode);
+        timecode.setFps(data.fps);
+        data.outputs.forEach(output => {
+          if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
+          else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
+          })
+        }
+      })
     })
 });
 
@@ -332,3 +356,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (mainWindow === null) createWindow();
 });
+
+app.on('quit', () => {
+  fs.writeFileSync(path.join(app.getPath('userData'), 'appState.json'), JSON.stringify({ timecode: timecode.getTime(), outputs: timecode.getActiveOutputs(), fps: timecode.getFps(), lock: { locked: lockState.locked, password: lockState.password }}));
+  mainWindow.close();
+})
