@@ -286,3 +286,5 @@ export class Timecode extends EventEmitter {
         console.log('Timecode stopped');
     }
 }
+
+/* Written by ProCraftGamin for SimpleMTC -> github.com/procraftgamin/simplemtc */
