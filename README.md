@@ -21,6 +21,7 @@ SimpleMTC is an app I made to run MIDI timecode over physical and virtual output
 ### Packaging the app
 
 * In a terminal, run `npm run package`
+* Once completed, the app will be in ./dist
 
 
 #### Other information
