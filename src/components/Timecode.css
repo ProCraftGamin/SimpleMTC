@@ -10,7 +10,7 @@
 }
 
 #timeWrapper input {
-    font-size: clamp(2.5rem, 15vw, 12rem);
+    font-size: clamp(2.5rem, min(15vw, 20vh), 12rem);
     text-align: center;
     color: white;
     line-height: 80%;
@@ -44,9 +44,10 @@ input.enabled {
 }
 
 .\;after::after,
-.\:after::after {
+.\:after::after,
+#dummyWrapper {
     color: white;
-    font-size: clamp(2.5rem, 15vw, 12rem);
+    font-size: clamp(2.5rem, min(20vw, 30vh), 12rem);
 }
 
 #fps {
@@ -54,5 +55,5 @@ input.enabled {
     text-align: center;
     opacity: 75%;
     font-weight: 100;
-    font-size: clamp(0.75rem, 3vw, 2.5rem);
+    font-size: clamp(1rem, min(3vw, 3vh), 2.5rem);
 }

@@ -25,5 +25,5 @@ body {
 .App {
   display: flex;
   flex-direction: column;
-  gap: clamp(1em, 3vw, 3em);
+  gap: clamp(0.25em, min(2vw, 2vh), 3em);
 }

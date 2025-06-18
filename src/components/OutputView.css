@@ -2,4 +2,5 @@
     color: white;
     text-align: center;
     font-weight: 100;
+    font-size: clamp(1em, min(2.5vh, 2.5vw), 2em);
 }

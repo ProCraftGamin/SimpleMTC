@@ -7,7 +7,7 @@
 .button {
   background-color: #3c3c3c;
   color: white;
-  padding: clamp(0.25rem, 1vw, 0.75rem) clamp(0.5rem, 5vw, 2rem);
+  padding: clamp(0.25rem, min(1vw, 1vh), 0.75rem) clamp(0.5rem, min(5vw, 5vh), 2rem);
   width: clamp(50px, 15vw, 100px);
   font-size: clamp(15px, 1vw, 25px);
   border-radius: 0.5em;

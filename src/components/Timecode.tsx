@@ -139,6 +139,7 @@ export default function Timecode({ running }: { running: boolean }) {
           disabled={running}
         />
         </div>
+        <div id="dummyWrapper">
         <input
           ref={inputsRef.frames}
           id="frames"
@@ -152,6 +153,7 @@ export default function Timecode({ running }: { running: boolean }) {
           inputMode="numeric"
           disabled={running}
         />
+        </div>
       </div>
       <div id="fps">{fps} FPS</div>
     </div>

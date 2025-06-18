@@ -216,7 +216,9 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 800,
+    minWidth: 265,
     height: 600,
+    minHeight: 175,
     title: 'SimpleMTC',
     webPreferences: {
       nodeIntegration: true,
