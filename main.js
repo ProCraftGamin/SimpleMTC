@@ -361,5 +361,5 @@ app.on('activate', () => {
 
 app.on('quit', () => {
   fs.writeFileSync(path.join(app.getPath('userData'), 'appState.json'), JSON.stringify({ timecode: timecode.getTime(), outputs: timecode.getActiveOutputs(), fps: timecode.getFps(), lock: { locked: lockState.locked, password: lockState.password }}));
-  mainWindow.close();
+  if (mainWindow.open) mainWindow.close();
 })
