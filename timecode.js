@@ -332,3 +332,4 @@ var Timecode = /** @class */ (function (_super) {
     return Timecode;
 }(EventEmitter));
 exports.Timecode = Timecode;
+/* Written by ProCraftGamin for SimpleMTC -> github.com/procraftgamin/simplemtc */ 
