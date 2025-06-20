@@ -342,7 +342,7 @@ app.on('ready', async () => {
         lockState.password = data.lock.password;
         timecode.setTime(data.timecode);
         timecode.setFps(data.fps);
-        data.outputs.forEach(output => {
+        data.outputs.forEach(output => { // TODO: add check to make sure the device is still connected before adding
           if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
           else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
           })
