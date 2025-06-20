@@ -18,6 +18,10 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
 
       - name: Install node.js
         uses: actions/setup-node@v4
@@ -35,6 +39,8 @@ jobs:
           old_ver=$(git show ${{ github.sha }}^:package.json | jq -r '.version')
           new_ver=$(jq -r '.version' package.json)
 
+          echo
+
           if [ "$old_ver" = "$new_ver" ]; then
             echo "updated=false" >> $GITHUB_OUTPUT
           else
@@ -43,16 +49,12 @@ jobs:
 
           echo "new_ver=$new_ver" >> $GITHUB_OUTPUT
 
-      - name: Skip if not updated
-        if: steps.version-check.outputs.updated == 'false'
-        run: |
-          echo "No version change."
-          exit 0
-
       - name: Package
+        if: steps.version-check.outputs.updated == 'true'
         run: npm run package
 
       - name: Upload package
+        if: steps.version-check.outputs.updated == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: SimpleMTC-${{ matrix.os }}=${{ steps.version-check.outputs.new_ver }}
