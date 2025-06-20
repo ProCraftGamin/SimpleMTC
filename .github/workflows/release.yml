@@ -55,7 +55,7 @@ jobs:
         if: steps.version-check.outputs.updated == 'true' && matrix.os == 'ubuntu-latest'
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           tag_name: v${{ steps.version-check.outputs.new_ver }}
           release_name: Version ${{ steps.version-check.outputs.new_ver }}
