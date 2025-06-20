@@ -342,9 +342,16 @@ app.on('ready', async () => {
         lockState.password = data.lock.password;
         timecode.setTime(data.timecode);
         timecode.setFps(data.fps);
+
+        const availableOutputs = timecode.getAvailableOutputs();
         data.outputs.forEach(output => { // TODO: add check to make sure the device is still connected before adding
-          if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
-          else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
+          if (availableOutputs.some(out => out.name === output.name)) {
+            if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
+            else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
+          } else dialog.showMessageBox({
+            title: "Missing output",
+            message: `Cannot find "${output.name}". Please make sure the device is plugged in, and add it from the outputs menu.`
+          })
           })
         }
       })

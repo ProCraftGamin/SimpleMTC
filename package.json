@@ -2,7 +2,7 @@
   "name": "simplemtc",
   "author": "ProCraftGamin",
   "description": "A simple app to run MIDI Timecode (MTC) over physical and virtual outputs.",
-  "version": "0.0.0",
+  "version": "1.0",
   "main": "main.js",
   "private": true,
   "homepage": "./",
@@ -24,7 +24,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "cross-env BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "electron": "electron .",
     "dist": "electron-builder",
@@ -52,6 +52,7 @@
     ]
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^36.4.0",
     "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
