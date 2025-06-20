@@ -1,31 +1,57 @@
-name: Build/release
+name: Release
 
-on: push
+on:
+  push:
+
+
 
 jobs:
-  release:
+  package:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
+    
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v1
+      - uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v1
+
+      - name: Install node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 10
+          node-version: 22.15.0
 
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for new verison
+        id: version-check
+        shell: bash
+        run: |
+          old_ver=$(git show ${{ github.sha }}^:package.json | jq -r '.version')
+          new_ver=$(jq -r '.version' package.json)
+
+          if [ "$old_ver" = "$new_ver" ]; then
+            echo "updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "update=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip if not updated
+        if: steps.version-check.outputs.updated == 'false'
+        run: |
+          echo "No version change."
+          exit 0
+
+      - name: Package
+        run: npm run package
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
         with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
-
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          name: SimpleMTC-${{ matrix.os }}=${{ steps.version-check.outputs.new_ver }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
