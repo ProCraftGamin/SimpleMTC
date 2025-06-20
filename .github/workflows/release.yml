@@ -51,16 +51,9 @@ jobs:
         run: npm ci
         timeout-minutes: 10
 
-      - name: Package
+      - name: Package & Release
         if: steps.version-check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PUBLISH: always
         run: npm run package
-
-      - name: Upload package
-        if: steps.version-check.outputs.updated == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: SimpleMTC-${{ matrix.os }}=${{ steps.version-check.outputs.new_ver }}
-          path: |
-            dist/*.exe
-            dist/*.dmg
-            dist/*.AppImage

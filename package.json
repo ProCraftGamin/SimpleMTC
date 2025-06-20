@@ -2,7 +2,7 @@
   "name": "simplemtc",
   "author": "ProCraftGamin",
   "description": "A simple app to run MIDI Timecode (MTC) over physical and virtual outputs.",
-  "version": "1.0",
+  "version": "1.0.0",
   "main": "main.js",
   "private": true,
   "homepage": "./",
