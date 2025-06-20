@@ -26,6 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        timeout-minutes: 10
 
       - name: Check for new verison
         id: version-check
@@ -37,8 +38,10 @@ jobs:
           if [ "$old_ver" = "$new_ver" ]; then
             echo "updated=false" >> $GITHUB_OUTPUT
           else
-            echo "update=true" >> $GITHUB_OUTPUT
+            echo "updated=true" >> $GITHUB_OUTPUT
           fi
+
+          echo "new_ver=$new_ver" >> $GITHUB_OUTPUT
 
       - name: Skip if not updated
         if: steps.version-check.outputs.updated == 'false'
