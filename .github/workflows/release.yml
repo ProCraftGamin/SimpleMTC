@@ -66,5 +66,5 @@ jobs:
         if: steps.version-check.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          PUBLISH: always
+          PUBLISH: release
         run: npm run package
