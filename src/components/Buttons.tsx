@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, } from 'react';
 import './Buttons.css';
 
 export default function Buttons({ running, setRunning }: { running: boolean, setRunning: React.Dispatch<React.SetStateAction<boolean>> }) {
@@ -10,7 +10,7 @@ export default function Buttons({ running, setRunning }: { running: boolean, set
       });
     
       return () => unsubscribe();
-    }, []);
+    }, [setRunning]);
     return (
         <div id="buttonWrapper">
             <div id="playbackButton" className="button" onClick={() => window.electronAPI.setState(!running)}>{running ? 'Stop' : 'Start'}</div>

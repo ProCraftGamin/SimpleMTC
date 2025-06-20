@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import Timecode from './components/Timecode';
 import OutputView from './components/OutputView';
