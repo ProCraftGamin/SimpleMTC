@@ -32,7 +32,7 @@ export default function Timecode({ running }: { running: boolean }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  });
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onSettingUpdate(change => {
