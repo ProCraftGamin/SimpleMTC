@@ -42,7 +42,7 @@ jobs:
       - name: Create tag
         if: steps.version-check.outputs.updated == 'true' && matrix.os == 'ubuntu-latest'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
