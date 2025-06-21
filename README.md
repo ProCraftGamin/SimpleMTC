@@ -1,5 +1,8 @@
 # SimpleMTC
 SimpleMTC is an app I made to run MIDI timecode over physical and virtual outputs. (Virtual outputs don't work on Windows)
+
+![Preview](https://github.com/ProCraftGamin/SimpleMTC/blob/master/github-assets/preview.png?raw=true)
+
 #### Features
 * Simple interface
 * (Theoretically) Infinite outputs
