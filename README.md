@@ -11,7 +11,14 @@ SimpleMTC is an app I made to run MIDI timecode over physical and virtual output
 * State persistence (The app remembers your outputs, lock state, fps, and last time you were at)
 * On-the-fly time change (The displays for the timecode are all inputs that you can edit by clicking, only when timecode is stopped)
 
-## Setup
+### Installation
+* Go to the [releases tab.](https://github.com/ProCraftGamin/SimpleMTC/releases/)
+* Download the file for your OS
+  * *.dmg for MacOS*
+  * *.exe for Windows*
+  * *.AppImage for Linux*
+
+## Development Setup
 
 * Clone the repo to your computer
 * In a terminal, install the required packages (`npm i`)
