@@ -39,16 +39,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && steps.version-check.outputs.updated == 'true'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
 
-      - name: Create tag
-        if: steps.version-check.outputs.updated == 'true' && matrix.os == 'ubuntu-latest'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag v${{ steps.version-check.outputs.new_ver }}
-          git push origin v${{ steps.version-check.outputs.new_ver }}
-
       - name: Create release
         if: steps.version-check.outputs.updated == 'true' && matrix.os == 'ubuntu-latest'
         uses: actions/create-release@v1
@@ -57,8 +47,7 @@ jobs:
         with:
           tag_name: v${{ steps.version-check.outputs.new_ver }}
           release_name: Version ${{ steps.version-check.outputs.new_ver }}
-          draft: false
-          prerelease: false
+          draft: true
 
       - name: Install node.js
         if: steps.version-check.outputs.updated == 'true'
