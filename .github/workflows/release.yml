@@ -40,7 +40,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
 
       - name: Create tag
-        if: steps.version-check.outputs.updated == true && matrix.os == 'ubuntu-latest'
+        if: steps.version-check.outputs.updated == 'true' && matrix.os == 'ubuntu-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
