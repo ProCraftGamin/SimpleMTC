@@ -85,22 +85,27 @@ export class Timecode extends EventEmitter {
 
         for (
             let i = reverse ? 7 : 0;
-            reverse ? i >= 0 : i <= 8;
+            reverse ? i >= 0 : i <= 7;
             reverse ? i-- : i++
         ) {
-            let dataByte: number;
-            switch (i) {
-                case 0: dataByte = (i << 4) | (this.currentTime[3] & 0x0F); break;
-                case 1: dataByte = (i << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
-                case 2: dataByte = (i << 4) | (this.currentTime[2] & 0x0F); break;
-                case 3: dataByte = (i << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
-                case 4: dataByte = (i << 4) | (this.currentTime[1] & 0x0F); break;
-                case 5: dataByte = (i << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
-                case 6: dataByte = (i << 4) | (this.currentTime[0] & 0x0F); break;
-                case 7: dataByte = (i << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
-            }
+            (async (index: number) => {
+                await setTimeout(() => {
+                    let dataByte;
+                    switch (index) {
+                        case 0: dataByte = (index << 4) | (this.currentTime[3] & 0x0F); break;
+                        case 1: dataByte = (index << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
+                        case 2: dataByte = (index << 4) | (this.currentTime[2] & 0x0F); break;
+                        case 3: dataByte = (index << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
+                        case 4: dataByte = (index << 4) | (this.currentTime[1] & 0x0F); break;
+                        case 5: dataByte = (index << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
+                        case 6: dataByte = (index << 4) | (this.currentTime[0] & 0x0F); break;
+                        case 7: dataByte = (index << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
+                    }
+                    this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
+                }, index * (1000 / (this.maxFrames * 8)));
+            })(i); // 👈 pass `i` into the IIFE
 
-            if (this.outputs.length > 0) this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
+
         };
         if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
         this.emit('timecode', this.currentTime);
@@ -276,7 +281,9 @@ export class Timecode extends EventEmitter {
 
         this.emit('stateChange', 'running');
         this.reverse = reverse;
-        this.interval = setInterval(() => this.sendTimecode(reverse), 1000 / this.maxFrames);
+        this.interval = setInterval(() => {
+            this.sendTimecode(reverse);
+        }, 1000 / this.maxFrames);
     }
 
     public stop() {

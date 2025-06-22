@@ -344,8 +344,8 @@ app.on('ready', async () => {
         timecode.setFps(data.fps);
 
         const availableOutputs = timecode.getAvailableOutputs();
-        data.outputs.forEach(output => { // TODO: add check to make sure the device is still connected before adding
-          if (availableOutputs.some(out => out.name === output.name)) {
+        data.outputs.forEach(output => {
+          if (output.type !== 'virtual' && availableOutputs.some(out => out.name === output.name)) {
             if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
             else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
           } else dialog.showMessageBox({
