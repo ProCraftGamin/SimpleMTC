@@ -55,6 +55,28 @@ function menuBuilder() {
     : [];
   })();
 
+  // const ltcSourcesSubmenu = (async () => {
+  //   const ltcSources = await timecode.getLTCSources();
+
+  //   return ltcSources.map((source, index) => {
+
+  //     if (source.channels > 1) {
+  //       return {
+  //         label: `${source.name} (${source.channels} channels)`,
+  //         submenu: Array.from({ length: source.channels - 1 }, (_, i) => ({
+  //           label: `Channel ${i + 1}`,
+  //           click: () => timecode.setLTCSource(index, i)
+  //         }))
+  //       }
+  //     } else {
+  //       return {
+  //         label: `${source.name} (${source.channels} channel)`,
+  //         click: () => timecode.setLTCSource(index)
+  //       }
+  //     }
+  //   })
+  // })
+
   const fps = timecode.getFps();
 
   menu = [
@@ -207,7 +229,13 @@ function menuBuilder() {
       { type: 'separator' },
       ...(outputsSubmenu.length > 0 ? outputsSubmenu : [{ label: 'No active outputs', enabled: false }])
     ]
-  }
+  }/*,*/
+  // {
+  //   label: 'LTC',
+  //   submenu: [
+  //     ...(ltcSourcesSubmenu.length > 0 ? ltcSourcesSubmenu : [{ label: 'No sources are available', enabled: false }])
+  //   ]
+  // }
 ]
 return menu;
 }
@@ -356,6 +384,9 @@ app.on('ready', async () => {
         }
       })
     })
+
+    // console.log(await timecode.getLTCSources());
+    timecode.setLTCSource(3, 4);
 });
 
 app.on('window-all-closed', () => {

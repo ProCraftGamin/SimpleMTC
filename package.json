@@ -17,6 +17,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "electron-prompt": "^1.7.0",
+    "ffmpeg-static-electron": "^2.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scripts": "^5.0.1",
@@ -26,7 +27,7 @@
   "scripts": {
     "start": "cross-env BROWSER=none react-scripts start",
     "build": "react-scripts build",
-    "electron": "electron .",
+    "electron": "tsc timecode.ts && electron .",
     "dist": "electron-builder",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

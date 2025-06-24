@@ -1,6 +1,9 @@
+import { exec, spawn } from "child_process";
+
 const EventEmitter = require('events');
 
 const midi = require('@julusian/midi');
+const ffmpeg = require('ffmpeg-static-electron');
 const os = require('os');
 
 interface OutputEntry {
@@ -109,6 +112,79 @@ export class Timecode extends EventEmitter {
         };
         if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
         this.emit('timecode', this.currentTime);
+    }
+
+    public getLTCSources() { 
+        // this approach is absouletly awful, i'm going to rewrite it later but for now it works
+        return new Promise((resolve, reject) => {
+            console.log('getLTCSources');
+            let devices: string[] = [], devicesJSON: { name: string, channels?: number }[] = [];
+            switch (os.type()) {
+                case 'Windows_NT':
+                    exec(ffmpeg.path + ' -list_devices true -f dshow -i dummy', (err, stdout, stderr) => {
+                        if (err) throw err;
+                        console.log('stderr: ' + stderr);
+                    });
+
+                    break;
+                case 'Darwin':
+                    exec(ffmpeg.path + ' -f avfoundation -list_devices true -i ""', (err, stdout, stderr) => {
+                        // if (err) throw err;
+                        console.log('stderr: ' + stderr);
+
+                        let atAudioDevices = false;
+                        stderr.split('\n').forEach(line => {
+                            if (!atAudioDevices && line.includes('AVFoundation audio devices:')) atAudioDevices = true;
+                            else if (atAudioDevices) {
+                                const match = line.match(/\[\d+\]\s(.+)$/);
+                                if (match) {
+                                    devices.push(match[1]);
+                                }
+                            }
+                        })
+
+                        devices.forEach((device, index) => {
+                            exec(ffmpeg.path + ' -f avfoundation -i :' + index, (err, stdout, stderr) => {
+                                const channelInfo = stderr.split('Input #0')[1].split(/,|\n/).filter(item => item !== '').map(item => item.trim());
+
+                                if (channelInfo[7] === 'mono') devicesJSON.push({ name: device, channels: 1 });
+                                else if (channelInfo[7] === 'stereo') devicesJSON.push({ name: device, channels: 1 })
+                                else {
+                                    if (channelInfo[7].split(' ')[0].includes('.')) devicesJSON.push({ name: device, channels: Number(channelInfo[7].split(' ')[0].split('.')[0]) + 1 });
+                                    else devicesJSON.push({ name: device, channels: Number(channelInfo[7].split(' ')[0]) });
+                                }
+
+                                if (index === devices.length - 1) resolve(devicesJSON);
+                            })
+                        })
+                    });
+
+                    break;
+                case 'Linux':
+                    /* exec(ffmpeg + '') */ // TODO: this is ridiculously complex because LINUX so do this later
+                    break;
+            }
+        })
+    }
+
+    public setLTCSource(index: number, channel?: number) {
+        if (typeof index !== 'number') throw new Error(`${index} is not a valid number`);
+
+        const ffmpegInstance = spawn(ffmpeg.path, [
+            '-f', 'avfoundation',
+            '-i', ':' + index,
+            '-ac', '1',
+            '-ar', '48000',
+            '-f', 's16le',
+            '-'
+        ]);
+
+        const ltcdump = spawn('./resources/ltcdump-mac', ['-F', '-c', channel ? channel.toString() : '1', '-']);
+        ffmpegInstance.stdout.pipe(ltcdump.stdin);
+
+        ltcdump.stdout.on('data', (data) => {
+            this.setTime(data.split(':'));
+        })
     }
 
     public getFps() {

@@ -24,8 +24,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -50,10 +50,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+exports.__esModule = true;
 exports.Timecode = void 0;
+var child_process_1 = require("child_process");
 var EventEmitter = require('events');
 var midi = require('@julusian/midi');
+var ffmpeg = require('ffmpeg-static-electron');
 var os = require('os');
 var Timecode = /** @class */ (function (_super) {
     __extends(Timecode, _super);
@@ -176,6 +178,77 @@ var Timecode = /** @class */ (function (_super) {
         if (this.currentTime.every(function (v, i) { return v === _this.maxTime[i]; }))
             clearInterval(this.interval);
         this.emit('timecode', this.currentTime);
+    };
+    Timecode.prototype.getLTCSources = function () {
+        // this approach is absouletly awful, i'm going to rewrite it later but for now it works
+        return new Promise(function (resolve, reject) {
+            console.log('getLTCSources');
+            var devices = [], devicesJSON = [];
+            switch (os.type()) {
+                case 'Windows_NT':
+                    (0, child_process_1.exec)(ffmpeg.path + ' -list_devices true -f dshow -i dummy', function (err, stdout, stderr) {
+                        if (err)
+                            throw err;
+                        console.log('stderr: ' + stderr);
+                    });
+                    break;
+                case 'Darwin':
+                    (0, child_process_1.exec)(ffmpeg.path + ' -f avfoundation -list_devices true -i ""', function (err, stdout, stderr) {
+                        // if (err) throw err;
+                        console.log('stderr: ' + stderr);
+                        var atAudioDevices = false;
+                        stderr.split('\n').forEach(function (line) {
+                            if (!atAudioDevices && line.includes('AVFoundation audio devices:'))
+                                atAudioDevices = true;
+                            else if (atAudioDevices) {
+                                var match = line.match(/\[\d+\]\s(.+)$/);
+                                if (match) {
+                                    devices.push(match[1]);
+                                }
+                            }
+                        });
+                        devices.forEach(function (device, index) {
+                            (0, child_process_1.exec)(ffmpeg.path + ' -f avfoundation -i :' + index, function (err, stdout, stderr) {
+                                var channelInfo = stderr.split('Input #0')[1].split(/,|\n/).filter(function (item) { return item !== ''; }).map(function (item) { return item.trim(); });
+                                if (channelInfo[7] === 'mono')
+                                    devicesJSON.push({ name: device, channels: 1 });
+                                else if (channelInfo[7] === 'stereo')
+                                    devicesJSON.push({ name: device, channels: 1 });
+                                else {
+                                    if (channelInfo[7].split(' ')[0].includes('.'))
+                                        devicesJSON.push({ name: device, channels: Number(channelInfo[7].split(' ')[0].split('.')[0]) + 1 });
+                                    else
+                                        devicesJSON.push({ name: device, channels: Number(channelInfo[7].split(' ')[0]) });
+                                }
+                                if (index === devices.length - 1)
+                                    resolve(devicesJSON);
+                            });
+                        });
+                    });
+                    break;
+                case 'Linux':
+                    /* exec(ffmpeg + '') */ // TODO: this is ridiculously complex because LINUX so do this later
+                    break;
+            }
+        });
+    };
+    Timecode.prototype.setLTCSource = function (index, channel) {
+        var _this = this;
+        if (typeof index !== 'number')
+            throw new Error("".concat(index, " is not a valid number"));
+        var ffmpegInstance = (0, child_process_1.spawn)(ffmpeg.path, [
+            '-f', 'avfoundation',
+            '-i', ':' + index,
+            '-ac', '1',
+            '-ar', '48000',
+            '-f', 's16le',
+            '-'
+        ]);
+        var ltcdump = (0, child_process_1.spawn)('./resources/ltcdump-mac', ['-F', '-c', channel ? channel.toString() : '1', '-']);
+        ffmpegInstance.stdout.pipe(ltcdump.stdin);
+        ltcdump.stdout.on('data', function (data) {
+            _this.setTime(data.split(':'));
+        });
     };
     Timecode.prototype.getFps = function () {
         return this.fps;
