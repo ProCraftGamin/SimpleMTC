@@ -84,7 +84,7 @@ export class Timecode extends EventEmitter {
             }
         }
 
-                await setTimeout(() => {
+                setTimeout(() => {
                     let dataByte;
                     switch (increment) {
                         case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
