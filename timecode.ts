@@ -85,7 +85,7 @@ export class Timecode extends EventEmitter {
         }
 
                     let dataByte;
-                    switch (increment) {
+                    switch (this.increment) {
                         case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
                         case 1: dataByte = (this.increment << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
                         case 2: dataByte = (this.increment << 4) | (this.currentTime[2] & 0x0F); break;
@@ -101,11 +101,11 @@ export class Timecode extends EventEmitter {
         this.emit('timecode', this.currentTime);
 
         if (!reverse) {
-            if (increment >= 7) increment = 0;
-            else increment++;
+            if (this.increment >= 7) this.increment = 0;
+            else this.increment++;
         } else {
-            if (increment < 0) increment = 7;
-            else increment--;
+            if (this.increment < 0) this.increment = 7;
+            else this.increment--;
         }
     }
 
