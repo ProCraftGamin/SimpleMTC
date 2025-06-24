@@ -84,7 +84,6 @@ export class Timecode extends EventEmitter {
             }
         }
 
-                setTimeout(() => {
                     let dataByte;
                     switch (increment) {
                         case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
@@ -97,7 +96,6 @@ export class Timecode extends EventEmitter {
                         case 7: dataByte = (this.increment << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
                     }
                     this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
-                }, index * (1000 / (this.maxFrames * 8)));
 
         if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
         this.emit('timecode', this.currentTime);
