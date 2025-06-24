@@ -43,6 +43,7 @@ export class Timecode extends EventEmitter {
         }
     }
 
+    private increment = 0;
     private sendTimecode(reverse: boolean) {
         if (this.interval) {
             if (reverse) {
@@ -83,32 +84,31 @@ export class Timecode extends EventEmitter {
             }
         }
 
-        for (
-            let i = reverse ? 7 : 0;
-            reverse ? i >= 0 : i <= 7;
-            reverse ? i-- : i++
-        ) {
-            (async (index: number) => {
                 await setTimeout(() => {
                     let dataByte;
-                    switch (index) {
-                        case 0: dataByte = (index << 4) | (this.currentTime[3] & 0x0F); break;
-                        case 1: dataByte = (index << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
-                        case 2: dataByte = (index << 4) | (this.currentTime[2] & 0x0F); break;
-                        case 3: dataByte = (index << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
-                        case 4: dataByte = (index << 4) | (this.currentTime[1] & 0x0F); break;
-                        case 5: dataByte = (index << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
-                        case 6: dataByte = (index << 4) | (this.currentTime[0] & 0x0F); break;
-                        case 7: dataByte = (index << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
+                    switch (increment) {
+                        case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
+                        case 1: dataByte = (this.increment << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
+                        case 2: dataByte = (this.increment << 4) | (this.currentTime[2] & 0x0F); break;
+                        case 3: dataByte = (this.increment << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
+                        case 4: dataByte = (this.increment << 4) | (this.currentTime[1] & 0x0F); break;
+                        case 5: dataByte = (this.increment << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
+                        case 6: dataByte = (this.increment << 4) | (this.currentTime[0] & 0x0F); break;
+                        case 7: dataByte = (this.increment << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
                     }
                     this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
                 }, index * (1000 / (this.maxFrames * 8)));
-            })(i); // 👈 pass `i` into the IIFE
 
-
-        };
         if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
         this.emit('timecode', this.currentTime);
+
+        if (!reverse) {
+            if (increment >= 7) increment = 0;
+            else increment++;
+        } else {
+            if (increment < 0) increment = 7;
+            else increment--;
+        }
     }
 
     public getFps() {
