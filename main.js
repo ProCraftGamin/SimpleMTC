@@ -346,9 +346,9 @@ app.on('ready', async () => {
         const availableOutputs = timecode.getAvailableOutputs();
         data.outputs.forEach(output => {
           if (output.type !== 'virtual' && availableOutputs.some(out => out.name === output.name)) {
-            if (output.type !== 'virtual') timecode.addPhysicalOutput(output.name, output.port);
-            else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
-          } else dialog.showMessageBox({
+            timecode.addPhysicalOutput(output.name, output.port);
+          } else if (output.type === 'virtual') timecode.addVirtualOutput(output.name);
+          else dialog.showMessageBox({
             title: "Missing output",
             message: `Cannot find "${output.name}". Please make sure the device is plugged in, and add it from the outputs menu.`
           })
