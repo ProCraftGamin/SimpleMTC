@@ -19,8 +19,13 @@ export class Timecode extends EventEmitter {
     private rate: number = 30;
     private maxFrames: number = 30;
     private outputs: OutputEntry[] = [];
-    private interval?: NodeJS.Timeout;
+    private continueTimecode: boolean = false;
     private reverse: boolean;
+	private increment: number = 0;
+	private timecodeRunning: boolean = false;
+	private startTime: number = 0;
+	private tickCount: number = 0;
+
 
     constructor(fps: number, startOffset?: number[], maxTime?: number[]) {
         super();
@@ -43,70 +48,84 @@ export class Timecode extends EventEmitter {
         }
     }
 
-    private increment = 0;
     private sendTimecode(reverse: boolean) {
-        if (this.interval) {
+        if (this.continueTimecode) {
             if (reverse) {
-                this.currentTime[3]--;
-                if (this.currentTime[3] >= this.maxFrames) {
-                    this.currentTime[3] = 0;
-                    this.currentTime[2]--;
-                    if (this.currentTime[2] >= 60) {
-                        this.currentTime[2] = 0;
-                        this.currentTime[1]--;
-                        if (this.currentTime[1] >= 60) {
-                            this.currentTime[1] = 0;
-                            this.currentTime[0]--;
-                            if (this.currentTime[0] <= 0) {
-                                clearInterval(this.interval);
-                            }
-                        }
-                    }
-                }
+				this.increment--;
+				if (this.increment < 0) {
+					this.increment = 7;
+	                this.currentTime[3]--;
+					if (!this.timecodeRunning) {
+						this.continueTimecode = false;
+					}
+    	            if (this.currentTime[3] >= this.maxFrames) {
+        	            this.currentTime[3] = 0;
+            	        this.currentTime[2]--;
+                	    if (this.currentTime[2] >= 60) {
+                    	    this.currentTime[2] = 0;
+                        	this.currentTime[1]--;
+	                        if (this.currentTime[1] >= 60) {
+    	                        this.currentTime[1] = 0;
+        	                    this.currentTime[0]--;
+            	                if (this.currentTime[0] <= 0) {
+                	                this.continueTimecode = false;
+                    	        }
+                        	}
+	                    }
+    	            }
+				}
             }
             else {
-                this.currentTime[3]++;
-                if (this.currentTime[3] >= this.maxFrames) {
-                    this.currentTime[3] = 0;
-                    this.currentTime[2]++;
-                    if (this.currentTime[2] >= 60) {
-                        this.currentTime[2] = 0;
-                        this.currentTime[1]++;
-                        if (this.currentTime[1] >= 60) {
-                            this.currentTime[1] = 0;
-                            this.currentTime[0]++;
-                            if (this.currentTime[0] >= 24) {
-                                this.currentTime[0] = 0;
-                            }
-                        }
-                    }
-                }
+				this.increment++;
+				if (this.increment > 7) {
+					this.increment = 0;
+                	this.currentTime[3]++;
+					if (!this.timecodeRunning) {
+						this.continueTimecode = false;
+					}
+                	if (this.currentTime[3] >= this.maxFrames) {
+                    	this.currentTime[3] = 0;
+	                    this.currentTime[2]++;
+    	                if (this.currentTime[2] >= 60) {
+        	                this.currentTime[2] = 0;
+            	            this.currentTime[1]++;
+                	        if (this.currentTime[1] >= 60) {
+                    	        this.currentTime[1] = 0;
+                        	    this.currentTime[0]++;
+                            	if (this.currentTime[0] >= 24) {
+                                	this.currentTime[0] = 0;
+	                            }
+    	                    }
+        	            }
+            	    }
+				}
             }
         }
+                let dataByte;
+                switch (this.increment) {
+                    case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
+                    case 1: dataByte = (this.increment << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
+                    case 2: dataByte = (this.increment << 4) | (this.currentTime[2] & 0x0F); break;
+                    case 3: dataByte = (this.increment << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
+                    case 4: dataByte = (this.increment << 4) | (this.currentTime[1] & 0x0F); break;
+                    case 5: dataByte = (this.increment << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
+                    case 6: dataByte = (this.increment << 4) | (this.currentTime[0] & 0x0F); break;
+					case 7: dataByte = (this.increment << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
+                }
+				this.emit('timecode', this.currentTime);
+                this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
 
-                    let dataByte;
-                    switch (this.increment) {
-                        case 0: dataByte = (this.increment << 4) | (this.currentTime[3] & 0x0F); break;
-                        case 1: dataByte = (this.increment << 4) | ((this.currentTime[3] >> 4) & 0x01); break;
-                        case 2: dataByte = (this.increment << 4) | (this.currentTime[2] & 0x0F); break;
-                        case 3: dataByte = (this.increment << 4) | ((this.currentTime[2] >> 4) & 0x03); break;
-                        case 4: dataByte = (this.increment << 4) | (this.currentTime[1] & 0x0F); break;
-                        case 5: dataByte = (this.increment << 4) | ((this.currentTime[1] >> 4) & 0x03); break;
-                        case 6: dataByte = (this.increment << 4) | (this.currentTime[0] & 0x0F); break;
-                        case 7: dataByte = (this.increment << 4) | ((this.currentTime[0] >> 4) & 0x01) | (this.rate << 1); break;
-                    }
-                    this.outputs.forEach(out => out.output.send([0xF1, dataByte]));
+        if (this.currentTime.every((v, i) => v === this.maxTime[i])) this.timecodeRunning = false;
+		if (this.continueTimecode === true) {
+			const frameInterval = 1000 / (this.maxFrames * 8);
+			this.tickCount++;
+			const idealNext = this.startTime + this.tickCount * frameInterval;
+			const now = performance.now();
+			const drift = now - idealNext;
+			const nextDelay = Math.max(0, frameInterval - drift);
 
-        if (this.currentTime.every((v, i) => v === this.maxTime[i])) clearInterval(this.interval);
-        this.emit('timecode', this.currentTime);
-
-        if (!reverse) {
-            if (this.increment >= 7) this.increment = 0;
-            else this.increment++;
-        } else {
-            if (this.increment < 0) this.increment = 7;
-            else this.increment--;
-        }
+			setTimeout(() => this.sendTimecode(this.reverse), nextDelay);
+		}
     }
 
     public getFps() {
@@ -121,11 +140,6 @@ export class Timecode extends EventEmitter {
             case 25: this.rate = 1; this.maxFrames = 25;  break;
             case 29.97: this.rate = 2; this.maxFrames = 30;  break;
             case 30: this.rate = 3; this.maxFrames = 30;  break;
-        }
-
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = setInterval(() => this.sendTimecode(this.reverse), 1000 / this.maxFrames);
         }
 
         this.emit('settingUpdate', { type: 'fps', value: fps });
@@ -163,6 +177,10 @@ export class Timecode extends EventEmitter {
         else if (time[3] > this.maxFrames) throw new Error(`Invalid frames number\nExpected a range from 0-${this.maxFrames}, recieved ${time[3]}`);
         else {
             this.currentTime = time;
+			this.continueTimecode = false;
+			this.timecodeRunning = false;
+			this.startTime = performance.now();
+			this.tickCount = 0;
             this.sendTimecode(false);
         }
         
@@ -278,16 +296,18 @@ export class Timecode extends EventEmitter {
         console.log('Timecode started');
 
         this.emit('stateChange', 'running');
+		
         this.reverse = reverse;
-        this.interval = setInterval(() => {
-            this.sendTimecode(reverse);
-        }, 1000 / this.maxFrames);
+		this.timecodeRunning = true;
+		this.continueTimecode = true;
+		this.sendTimecode(this.reverse);
+		this.startTime = performance.now();
+		this.tickCount = 0;
     }
 
     public stop() {
         this.emit('stateChange', 'stopped');
-        clearInterval(this.interval);
-        this.interval = undefined;
+        this.timecodeRunning = false;
         console.log('Timecode stopped');
     }
 }
